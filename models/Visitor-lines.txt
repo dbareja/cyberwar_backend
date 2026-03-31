@@ -1,0 +1,21 @@
+001 const mongoose = require('mongoose');
+002 
+003 const visitorSchema = new mongoose.Schema({
+004   sessionId: { type: String, required: true },
+005   ipAddress: String,
+006   page: String,
+007   userAgent: String,
+008   browser: { type: String, default: 'Unknown' },
+009   os: { type: String, default: 'Unknown' },
+010   device: { type: String, default: 'Desktop' },
+011   blog: { type: mongoose.Schema.Types.ObjectId, ref: 'Blog', default: null },
+012   isUnique: { type: Boolean, default: true },
+013   duration: { type: Number, default: 0 },
+014   referrer: String,
+015   date: { type: Date, default: Date.now }
+016 }, { timestamps: true });
+017 
+018 visitorSchema.index({ date: -1 });
+019 visitorSchema.index({ ipAddress: 1, page: 1, date: 1 });
+020 
+021 module.exports = mongoose.model('Visitor', visitorSchema);

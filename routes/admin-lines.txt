@@ -1,0 +1,42 @@
+001 const express = require('express');
+002 const router = express.Router();
+003 const { protect, adminOnly } = require('../middleware/auth');
+004 const upload = require('../middleware/upload');
+005 
+006 // Blog routes
+007 const { getAdminBlogs, getAdminBlogById, createBlog, updateBlog, deleteBlog, toggleStatus, generateSlugFromTitle } = require('../controllers/blogController');
+008 router.get('/blogs', protect, getAdminBlogs);
+009 router.get('/blogs/:id', protect, getAdminBlogById);
+010 router.post('/blogs', protect, upload.single('featuredImage'), createBlog);
+011 router.put('/blogs/:id', protect, upload.single('featuredImage'), updateBlog);
+012 router.delete('/blogs/:id', protect, deleteBlog);
+013 router.put('/blogs/:id/toggle-status', protect, toggleStatus);
+014 router.post('/blogs/generate-slug', protect, generateSlugFromTitle);
+015 
+016 // Category routes
+017 const { getAdminCategories, createCategory, updateCategory, deleteCategory } = require('../controllers/categoryController');
+018 router.get('/categories', protect, getAdminCategories);
+019 router.post('/categories', protect, createCategory);
+020 router.put('/categories/:id', protect, updateCategory);
+021 router.delete('/categories/:id', protect, deleteCategory);
+022 
+023 // Tag routes
+024 const { createTag, updateTag, deleteTag } = require('../controllers/tagController');
+025 router.post('/tags', protect, createTag);
+026 router.put('/tags/:id', protect, updateTag);
+027 router.delete('/tags/:id', protect, deleteTag);
+028 
+029 // Comment routes
+030 const { getAdminComments, updateCommentStatus, deleteComment } = require('../controllers/commentController');
+031 router.get('/comments', protect, getAdminComments);
+032 router.put('/comments/:id', protect, updateCommentStatus);
+033 router.delete('/comments/:id', protect, deleteComment);
+034 
+035 // Analytics routes
+036 const { getDashboardStats, getVisitorStats, getBlogViewStats, getNewsletterSubscribers } = require('../controllers/analyticsController');
+037 router.get('/analytics/dashboard', protect, getDashboardStats);
+038 router.get('/analytics/visitors', protect, getVisitorStats);
+039 router.get('/analytics/blog-views', protect, getBlogViewStats);
+040 router.get('/newsletter', protect, getNewsletterSubscribers);
+041 
+042 module.exports = router;

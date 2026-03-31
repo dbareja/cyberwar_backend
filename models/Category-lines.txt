@@ -1,0 +1,13 @@
+001 const mongoose = require('mongoose');
+002 
+003 const categorySchema = new mongoose.Schema({
+004   name: { type: String, required: true, unique: true, trim: true, maxlength: 50 },
+005   slug: { type: String, unique: true, lowercase: true },
+006   description: { type: String, maxlength: 500 },
+007   color: { type: String, default: '#dc2626' },
+008   icon: { type: String, default: '🛡️' },
+009   isActive: { type: Boolean, default: true },
+010   blogCount: { type: Number, default: 0 }
+011 }, { timestamps: true });
+012 
+013 module.exports = mongoose.model('Category', categorySchema);

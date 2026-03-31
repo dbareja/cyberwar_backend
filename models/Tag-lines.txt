@@ -1,0 +1,11 @@
+001 const mongoose = require('mongoose');
+002 
+003 const tagSchema = new mongoose.Schema({
+004   name: { type: String, required: true, unique: true, trim: true, lowercase: true, maxlength: 50 },
+005   slug: { type: String, unique: true, lowercase: true },
+006   description: { type: String, maxlength: 200 },
+007   color: { type: String, default: '#6B7280' },
+008   blogCount: { type: Number, default: 0 }
+009 }, { timestamps: true });
+010 
+011 module.exports = mongoose.model('Tag', tagSchema);

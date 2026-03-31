@@ -1,0 +1,10 @@
+001 const mongoose = require('mongoose');
+002 
+003 const newsletterSchema = new mongoose.Schema({
+004   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+005   isActive: { type: Boolean, default: true },
+006   ipAddress: String,
+007   subscribedAt: { type: Date, default: Date.now }
+008 }, { timestamps: true });
+009 
+010 module.exports = mongoose.model('Newsletter', newsletterSchema);

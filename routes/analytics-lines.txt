@@ -1,0 +1,8 @@
+001 const express = require('express');
+002 const router = express.Router();
+003 const { trackVisitor, subscribeNewsletter } = require('../controllers/analyticsController');
+004 
+005 router.post('/track', trackVisitor);
+006 router.post('/newsletter/subscribe', subscribeNewsletter);
+007 
+008 module.exports = router;

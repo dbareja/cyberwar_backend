@@ -1,0 +1,7 @@
+001 const express = require('express');
+002 const router = express.Router();
+003 const { getTags } = require('../controllers/tagController');
+004 
+005 router.get('/', getTags);
+006 
+007 module.exports = router;

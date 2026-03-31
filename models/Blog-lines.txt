@@ -1,0 +1,57 @@
+001 const mongoose = require('mongoose');
+002 
+003 const blogSchema = new mongoose.Schema({
+004   title: { type: String, required: true, trim: true, maxlength: 200 },
+005   slug: { type: String, unique: true, lowercase: true },
+006   excerpt: { type: String, maxlength: 500 },
+007   content: { type: String, required: true },
+008   featuredImage: { type: String, default: null },
+009   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+010   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+011   tags: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tag' }],
+012   status: { type: String, enum: ['draft', 'published', 'archived'], default: 'draft' },
+013   isFeatured: { type: Boolean, default: false },
+014   isTrending: { type: Boolean, default: false },
+015   isBreaking: { type: Boolean, default: false },
+016   viewCount: { type: Number, default: 0 },
+017   commentCount: { type: Number, default: 0 },
+018   readTime: { type: Number, default: 5 },
+019   metaTitle: { type: String, maxlength: 70 },
+020   metaDescription: { type: String, maxlength: 160 },
+021   publishedAt: { type: Date },
+022   scheduledAt: { type: Date }
+023 }, { timestamps: true });
+024 
+025 blogSchema.index({ title: 'text', content: 'text', excerpt: 'text' });
+026 blogSchema.index({ slug: 1 });
+027 blogSchema.index({ status: 1, publishedAt: -1 });
+028 blogSchema.index({ category: 1 });
+029 blogSchema.index({ isFeatured: 1 });
+030 blogSchema.index({ isTrending: 1 });
+031 
+032 blogSchema.pre('save', async function(next) {
+033   if (!this.slug && this.title) {
+034     const slugify = require('slugify');
+035     let slug = slugify(this.title, { lower: true, strict: true, trim: true });
+036     let uniqueSlug = slug;
+037     let counter = 1;
+038     while (true) {
+039       const existing = await this.constructor.findOne({ slug: uniqueSlug, _id: { $ne: this._id } });
+040       if (!existing) break;
+041       uniqueSlug = `${slug}-${counter}`;
+042       counter++;
+043     }
+044     this.slug = uniqueSlug;
+045   }
+046   if (this.content) {
+047     const wordsPerMinute = 200;
+048     const wordCount = this.content.replace(/<[^>]+>/g, '').split(/\s+/).length;
+049     this.readTime = Math.ceil(wordCount / wordsPerMinute);
+050   }
+051   if (this.status === 'published' && !this.publishedAt) {
+052     this.publishedAt = new Date();
+053   }
+054   next();
+055 });
+056 
+057 module.exports = mongoose.model('Blog', blogSchema);

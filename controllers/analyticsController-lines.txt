@@ -1,0 +1,144 @@
+001 const Visitor = require('../models/Visitor');
+002 const Blog = require('../models/Blog');
+003 const Comment = require('../models/Comment');
+004 const User = require('../models/User');
+005 const Category = require('../models/Category');
+006 const Newsletter = require('../models/Newsletter');
+007 const { v4: uuidv4 } = require('uuid');
+008 
+009 const trackVisitor = async (req, res) => {
+010   try {
+011     const { page, blogId, duration, sessionId } = req.body;
+012     const ipAddress = req.ip || req.connection.remoteAddress;
+013     const userAgent = req.headers['user-agent'] || '';
+014 
+015     let browser = 'Unknown', os = 'Unknown', device = 'Desktop';
+016     if (userAgent.includes('Chrome')) browser = 'Chrome';
+017     else if (userAgent.includes('Firefox')) browser = 'Firefox';
+018     else if (userAgent.includes('Safari')) browser = 'Safari';
+019     else if (userAgent.includes('Edge')) browser = 'Edge';
+020 
+021     if (userAgent.includes('Windows')) os = 'Windows';
+022     else if (userAgent.includes('Mac')) os = 'macOS';
+023     else if (userAgent.includes('Linux')) os = 'Linux';
+024     else if (userAgent.includes('Android')) os = 'Android';
+025     else if (userAgent.includes('iPhone') || userAgent.includes('iOS')) os = 'iOS';
+026 
+027     if (userAgent.includes('Mobile') || userAgent.includes('Android') || userAgent.includes('iPhone')) device = 'Mobile';
+028     else if (userAgent.includes('Tablet') || userAgent.includes('iPad')) device = 'Tablet';
+029 
+030     const today = new Date(); today.setHours(0, 0, 0, 0);
+031     const existingVisit = await Visitor.findOne({ ipAddress, page, date: { $gte: today } });
+032 
+033     const visitor = await Visitor.create({
+034       sessionId: sessionId || uuidv4(), ipAddress, page, userAgent,
+035       browser, os, device, blog: blogId || null,
+036       isUnique: !existingVisit, duration: duration || 0,
+037       referrer: req.headers.referer || '', date: new Date()
+038     });
+039 
+040     res.status(201).json({ success: true, sessionId: visitor.sessionId });
+041   } catch (error) {
+042     res.status(500).json({ success: false, message: 'Server error' });
+043   }
+044 };
+045 
+046 const getDashboardStats = async (req, res) => {
+047   try {
+048     const [totalBlogs, publishedBlogs, draftBlogs, totalUsers, totalComments, pendingComments,
+049       totalVisitors, uniqueVisitors, newsletterSubs] = await Promise.all([
+050       Blog.countDocuments(), Blog.countDocuments({ status: 'published' }),
+051       Blog.countDocuments({ status: 'draft' }), User.countDocuments(),
+052       Comment.countDocuments(), Comment.countDocuments({ status: 'pending' }),
+053       Visitor.countDocuments(), Visitor.countDocuments({ isUnique: true }),
+054       Newsletter.countDocuments({ isActive: true })
+055     ]);
+056 
+057     const viewsAgg = await Blog.aggregate([{ $group: { _id: null, total: { $sum: '$viewCount' } } }]);
+058     const totalBlogViews = viewsAgg[0]?.total || 0;
+059 
+060     res.json({
+061       success: true, stats: {
+062         totalBlogs, publishedBlogs, draftBlogs, totalUsers,
+063         totalComments, pendingComments, totalVisitors,
+064         uniqueVisitors, totalBlogViews, newsletterSubs
+065       }
+066     });
+067   } catch (error) {
+068     res.status(500).json({ success: false, message: 'Server error' });
+069   }
+070 };
+071 
+072 const getVisitorStats = async (req, res) => {
+073   try {
+074     const days = parseInt(req.query.days) || 30;
+075     const startDate = new Date();
+076     startDate.setDate(startDate.getDate() - days);
+077 
+078     const visitorData = await Visitor.aggregate([
+079       { $match: { date: { $gte: startDate } } },
+080       { $group: { _id: { year: { $year: '$date' }, month: { $month: '$date' }, day: { $dayOfMonth: '$date' } }, total: { $sum: 1 }, unique: { $sum: { $cond: ['$isUnique', 1, 0] } } } },
+081       { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+082     ]);
+083 
+084     const formatted = visitorData.map(d => ({
+085       date: `${d._id.year}-${String(d._id.month).padStart(2, '0')}-${String(d._id.day).padStart(2, '0')}`,
+086       total: d.total, unique: d.unique
+087     }));
+088 
+089     const browserStats = await Visitor.aggregate([
+090       { $match: { date: { $gte: startDate } } },
+091       { $group: { _id: '$browser', count: { $sum: 1 } } },
+092       { $sort: { count: -1 } }
+093     ]);
+094 
+095     const deviceStats = await Visitor.aggregate([
+096       { $match: { date: { $gte: startDate } } },
+097       { $group: { _id: '$device', count: { $sum: 1 } } },
+098       { $sort: { count: -1 } }
+099     ]);
+100 
+101     res.json({ success: true, visitors: formatted, browserStats, deviceStats });
+102   } catch (error) {
+103     res.status(500).json({ success: false, message: 'Server error' });
+104   }
+105 };
+106 
+107 const getBlogViewStats = async (req, res) => {
+108   try {
+109     const topBlogs = await Blog.find({ status: 'published' })
+110       .select('title slug viewCount commentCount publishedAt')
+111       .sort('-viewCount').limit(10).lean();
+112     res.json({ success: true, topBlogs });
+113   } catch (error) {
+114     res.status(500).json({ success: false, message: 'Server error' });
+115   }
+116 };
+117 
+118 const subscribeNewsletter = async (req, res) => {
+119   try {
+120     const { email } = req.body;
+121     const existing = await Newsletter.findOne({ email });
+122     if (existing) {
+123       if (existing.isActive) return res.status(400).json({ success: false, message: 'Already subscribed' });
+124       existing.isActive = true;
+125       await existing.save();
+126       return res.json({ success: true, message: 'Successfully resubscribed!' });
+127     }
+128     await Newsletter.create({ email, ipAddress: req.ip });
+129     res.status(201).json({ success: true, message: 'Successfully subscribed!' });
+130   } catch (error) {
+131     res.status(500).json({ success: false, message: 'Server error' });
+132   }
+133 };
+134 
+135 const getNewsletterSubscribers = async (req, res) => {
+136   try {
+137     const subscribers = await Newsletter.find({ isActive: true }).sort('-subscribedAt');
+138     res.json({ success: true, subscribers, total: subscribers.length });
+139   } catch (error) {
+140     res.status(500).json({ success: false, message: 'Server error' });
+141   }
+142 };
+143 
+144 module.exports = { trackVisitor, getDashboardStats, getVisitorStats, getBlogViewStats, subscribeNewsletter, getNewsletterSubscribers };

@@ -1,0 +1,82 @@
+001 const Comment = require('../models/Comment');
+002 const Blog = require('../models/Blog');
+003 
+004 const getComments = async (req, res) => {
+005   try {
+006     const { blogId } = req.params;
+007     const comments = await Comment.find({ blog: blogId, status: 'approved', parentComment: null })
+008       .sort('-createdAt').lean();
+009     const replies = await Comment.find({ blog: blogId, status: 'approved', parentComment: { $ne: null } })
+010       .sort('createdAt').lean();
+011     res.json({ success: true, comments, replies });
+012   } catch (error) {
+013     res.status(500).json({ success: false, message: 'Server error' });
+014   }
+015 };
+016 
+017 const createComment = async (req, res) => {
+018   try {
+019     const { name, email, website, content, parentComment } = req.body;
+020     const { blogId } = req.params;
+021 
+022     const blog = await Blog.findById(blogId);
+023     if (!blog) return res.status(404).json({ success: false, message: 'Blog not found' });
+024 
+025     const comment = await Comment.create({
+026       blog: blogId,
+027       author: { name, email, website },
+028       content, parentComment: parentComment || null,
+029       ipAddress: req.ip
+030     });
+031 
+032     await Blog.findByIdAndUpdate(blogId, { $inc: { commentCount: 1 } });
+033     res.status(201).json({ success: true, comment, message: 'Comment submitted for review' });
+034   } catch (error) {
+035     res.status(500).json({ success: false, message: 'Server error' });
+036   }
+037 };
+038 
+039 const getAdminComments = async (req, res) => {
+040   try {
+041     const page = parseInt(req.query.page) || 1;
+042     const limit = parseInt(req.query.limit) || 20;
+043     const skip = (page - 1) * limit;
+044     const { status } = req.query;
+045 
+046     const query = {};
+047     if (status) query.status = status;
+048 
+049     const total = await Comment.countDocuments(query);
+050     const comments = await Comment.find(query)
+051       .populate('blog', 'title slug')
+052       .sort('-createdAt').skip(skip).limit(limit).lean();
+053 
+054     res.json({ success: true, comments, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+055   } catch (error) {
+056     res.status(500).json({ success: false, message: 'Server error' });
+057   }
+058 };
+059 
+060 const updateCommentStatus = async (req, res) => {
+061   try {
+062     const { status } = req.body;
+063     const comment = await Comment.findByIdAndUpdate(req.params.id, { status }, { new: true });
+064     if (!comment) return res.status(404).json({ success: false, message: 'Comment not found' });
+065     res.json({ success: true, comment });
+066   } catch (error) {
+067     res.status(500).json({ success: false, message: 'Server error' });
+068   }
+069 };
+070 
+071 const deleteComment = async (req, res) => {
+072   try {
+073     const comment = await Comment.findByIdAndDelete(req.params.id);
+074     if (!comment) return res.status(404).json({ success: false, message: 'Comment not found' });
+075     await Blog.findByIdAndUpdate(comment.blog, { $inc: { commentCount: -1 } });
+076     res.json({ success: true, message: 'Comment deleted' });
+077   } catch (error) {
+078     res.status(500).json({ success: false, message: 'Server error' });
+079   }
+080 };
+081 
+082 module.exports = { getComments, createComment, getAdminComments, updateCommentStatus, deleteComment };

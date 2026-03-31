@@ -1,0 +1,20 @@
+001 const mongoose = require('mongoose');
+002 
+003 const commentSchema = new mongoose.Schema({
+004   blog: { type: mongoose.Schema.Types.ObjectId, ref: 'Blog', required: true },
+005   author: {
+006     name: { type: String, required: true, trim: true, maxlength: 100 },
+007     email: { type: String, required: true, lowercase: true, trim: true },
+008     website: String
+009   },
+010   content: { type: String, required: true, maxlength: 2000 },
+011   status: { type: String, enum: ['pending', 'approved', 'rejected', 'spam'], default: 'pending' },
+012   parentComment: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment', default: null },
+013   ipAddress: String,
+014   likes: { type: Number, default: 0 }
+015 }, { timestamps: true });
+016 
+017 commentSchema.index({ blog: 1, status: 1 });
+018 commentSchema.index({ status: 1, createdAt: -1 });
+019 
+020 module.exports = mongoose.model('Comment', commentSchema);

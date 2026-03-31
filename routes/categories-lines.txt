@@ -1,0 +1,7 @@
+001 const express = require('express');
+002 const router = express.Router();
+003 const { getCategories } = require('../controllers/categoryController');
+004 
+005 router.get('/', getCategories);
+006 
+007 module.exports = router;

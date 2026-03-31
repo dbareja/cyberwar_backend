@@ -1,0 +1,48 @@
+001 const Tag = require('../models/Tag');
+002 const slugify = require('slugify');
+003 
+004 const getTags = async (req, res) => {
+005   try {
+006     const tags = await Tag.find().sort('-blogCount').lean();
+007     res.json({ success: true, tags });
+008   } catch (error) {
+009     res.status(500).json({ success: false, message: 'Server error' });
+010   }
+011 };
+012 
+013 const createTag = async (req, res) => {
+014   try {
+015     const { name, description, color } = req.body;
+016     const slug = slugify(name, { lower: true, strict: true });
+017     const tag = await Tag.create({ name: name.toLowerCase(), slug, description, color });
+018     res.status(201).json({ success: true, tag });
+019   } catch (error) {
+020     if (error.code === 11000) return res.status(400).json({ success: false, message: 'Tag already exists' });
+021     res.status(500).json({ success: false, message: 'Server error' });
+022   }
+023 };
+024 
+025 const updateTag = async (req, res) => {
+026   try {
+027     const { name, description, color } = req.body;
+028     const updateData = { name: name?.toLowerCase(), description, color };
+029     if (name) updateData.slug = slugify(name, { lower: true, strict: true });
+030     const tag = await Tag.findByIdAndUpdate(req.params.id, updateData, { new: true });
+031     if (!tag) return res.status(404).json({ success: false, message: 'Tag not found' });
+032     res.json({ success: true, tag });
+033   } catch (error) {
+034     res.status(500).json({ success: false, message: 'Server error' });
+035   }
+036 };
+037 
+038 const deleteTag = async (req, res) => {
+039   try {
+040     const tag = await Tag.findByIdAndDelete(req.params.id);
+041     if (!tag) return res.status(404).json({ success: false, message: 'Tag not found' });
+042     res.json({ success: true, message: 'Tag deleted' });
+043   } catch (error) {
+044     res.status(500).json({ success: false, message: 'Server error' });
+045   }
+046 };
+047 
+048 module.exports = { getTags, createTag, updateTag, deleteTag };

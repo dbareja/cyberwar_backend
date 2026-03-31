@@ -1,0 +1,30 @@
+001 const multer = require('multer');
+002 const path = require('path');
+003 const fs = require('fs');
+004 
+005 const uploadDir = path.join(__dirname, '../uploads');
+006 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+007 
+008 const storage = multer.diskStorage({
+009   destination: (req, file, cb) => cb(null, uploadDir),
+010   filename: (req, file, cb) => {
+011     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+012     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+013   }
+014 });
+015 
+016 const fileFilter = (req, file, cb) => {
+017   const allowedTypes = /jpeg|jpg|png|gif|webp/;
+018   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+019   const mimetype = allowedTypes.test(file.mimetype);
+020   if (extname && mimetype) cb(null, true);
+021   else cb(new Error('Only image files are allowed'));
+022 };
+023 
+024 const upload = multer({
+025   storage,
+026   limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5242880 },
+027   fileFilter
+028 });
+029 
+030 module.exports = upload;

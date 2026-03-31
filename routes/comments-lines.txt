@@ -1,0 +1,8 @@
+001 const express = require('express');
+002 const router = express.Router();
+003 const { getComments, createComment } = require('../controllers/commentController');
+004 
+005 router.get('/:blogId', getComments);
+006 router.post('/:blogId', createComment);
+007 
+008 module.exports = router;

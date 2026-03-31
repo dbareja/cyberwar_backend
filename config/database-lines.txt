@@ -1,0 +1,53 @@
+001 const mongoose = require('mongoose');
+002 const dns = require('dns');
+003 
+004 mongoose.set('strictQuery', false);
+005 
+006 const buildURI = () => {
+007   if (process.env.MONGODB_URI) {
+008     return process.env.MONGODB_URI;
+009   }
+010 
+011   const host = process.env.MONGODB_HOST || '127.0.0.1';
+012   const port = process.env.MONGODB_PORT || '27017';
+013   const database = process.env.MONGODB_DATABASE || 'cyberwar_blog';
+014   const query = process.env.MONGODB_QUERY ? `?${process.env.MONGODB_QUERY}` : '';
+015 
+016   return `mongodb://${host}:${port}/${database}${query}`;
+017 };
+018 
+019 const ensurePublicDNSForSRV = () => {
+020   const currentServers = dns.getServers();
+021   if (currentServers && currentServers.some(server => server.includes('127.0.0.1'))) {
+022     console.warn(
+023       'Local DNS server 127.0.0.1 detected — switching to Google public DNS for SRV lookups.'
+024     );
+025     dns.setServers(['8.8.8.8', '8.8.4.4']);
+026   }
+027 };
+028 
+029 const connectDB = async () => {
+030   const uri = buildURI();
+031   const options = {
+032     useNewUrlParser: true,
+033     useUnifiedTopology: true,
+034     serverSelectionTimeoutMS: 5000,
+035     socketTimeoutMS: 30000,
+036     family: Number(process.env.MONGODB_IP_FAMILY) || 4,
+037   };
+038 
+039   try {
+040     ensurePublicDNSForSRV();
+041     const conn = await mongoose.connect(uri, options);
+042     console.log(`MongoDB Connected: ${conn.connection.host}`);
+043     return conn;
+044   } catch (error) {
+045     console.error(
+046       `MongoDB Connection Error (${error.message}). ` +
+047         'Verify MONGODB_URI or the host/port values and make sure MongoDB is reachable.'
+048     );
+049     process.exit(1);
+050   }
+051 };
+052 
+053 module.exports = connectDB;

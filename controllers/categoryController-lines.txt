@@ -1,0 +1,57 @@
+001 const Category = require('../models/Category');
+002 const slugify = require('slugify');
+003 
+004 const getCategories = async (req, res) => {
+005   try {
+006     const categories = await Category.find({ isActive: true }).sort('name').lean();
+007     res.json({ success: true, categories });
+008   } catch (error) {
+009     res.status(500).json({ success: false, message: 'Server error' });
+010   }
+011 };
+012 
+013 const getAdminCategories = async (req, res) => {
+014   try {
+015     const categories = await Category.find().sort('name').lean();
+016     res.json({ success: true, categories });
+017   } catch (error) {
+018     res.status(500).json({ success: false, message: 'Server error' });
+019   }
+020 };
+021 
+022 const createCategory = async (req, res) => {
+023   try {
+024     const { name, description, color, icon } = req.body;
+025     const slug = slugify(name, { lower: true, strict: true });
+026     const category = await Category.create({ name, slug, description, color, icon });
+027     res.status(201).json({ success: true, category });
+028   } catch (error) {
+029     if (error.code === 11000) return res.status(400).json({ success: false, message: 'Category already exists' });
+030     res.status(500).json({ success: false, message: 'Server error' });
+031   }
+032 };
+033 
+034 const updateCategory = async (req, res) => {
+035   try {
+036     const { name, description, color, icon, isActive } = req.body;
+037     const updateData = { name, description, color, icon, isActive };
+038     if (name) updateData.slug = slugify(name, { lower: true, strict: true });
+039     const category = await Category.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true });
+040     if (!category) return res.status(404).json({ success: false, message: 'Category not found' });
+041     res.json({ success: true, category });
+042   } catch (error) {
+043     res.status(500).json({ success: false, message: 'Server error' });
+044   }
+045 };
+046 
+047 const deleteCategory = async (req, res) => {
+048   try {
+049     const category = await Category.findByIdAndDelete(req.params.id);
+050     if (!category) return res.status(404).json({ success: false, message: 'Category not found' });
+051     res.json({ success: true, message: 'Category deleted' });
+052   } catch (error) {
+053     res.status(500).json({ success: false, message: 'Server error' });
+054   }
+055 };
+056 
+057 module.exports = { getCategories, getAdminCategories, createCategory, updateCategory, deleteCategory };

@@ -1,0 +1,93 @@
+001 const express = require('express');
+002 const cors = require('cors');
+003 const helmet = require('helmet');
+004 const morgan = require('morgan');
+005 const path = require('path');
+006 require('dotenv').config();
+007 
+008 const connectDB = require('./config/database');
+009 
+010 // Import routes
+011 const authRoutes = require('./routes/auth');
+012 const blogRoutes = require('./routes/blogs');
+013 const categoryRoutes = require('./routes/categories');
+014 const tagRoutes = require('./routes/tags');
+015 const commentRoutes = require('./routes/comments');
+016 const analyticsRoutes = require('./routes/analytics');
+017 
+018 const app = express();
+019 
+020 // Connect to MongoDB
+021 connectDB();
+022 
+023 // Security middleware
+024 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+025 
+026 // CORS
+027 const allowedOrigins = [
+028   process.env.CORS_ORIGIN || 'http://localhost:5173',
+029   'http://localhost:5173',
+030   'http://localhost:3000',
+031   'https://5173-i72ygobs4ph3szzf98cwb-b32ec7bb.sandbox.novita.ai'
+032 ];
+033 
+034 app.use(cors({
+035   origin: function(origin, callback) {
+036     if (!origin || allowedOrigins.some(o => origin.startsWith(o.replace('https://', '').replace('http://', '')))) {
+037       callback(null, true);
+038     } else {
+039       callback(null, true); // Allow all for development
+040     }
+041   },
+042   credentials: true,
+043   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+044   allowedHeaders: ['Content-Type', 'Authorization']
+045 }));
+046 
+047 // Body parsing
+048 app.use(express.json({ limit: '10mb' }));
+049 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+050 
+051 // Logging
+052 if (process.env.NODE_ENV === 'development') {
+053   app.use(morgan('dev'));
+054 }
+055 
+056 // Static files for uploads
+057 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+058 
+059 // API Routes
+060 app.use('/api/auth', authRoutes);
+061 app.use('/api/blogs', blogRoutes);
+062 app.use('/api/categories', categoryRoutes);
+063 app.use('/api/tags', tagRoutes);
+064 app.use('/api/comments', commentRoutes);
+065 app.use('/api/analytics', analyticsRoutes);
+066 
+067 // Admin routes (protected)
+068 app.use('/api/admin', require('./routes/admin'));
+069 
+070 // Health check
+071 app.get('/api/health', (req, res) => {
+072   res.json({ success: true, message: 'CyberWar API is running', timestamp: new Date() });
+073 });
+074 
+075 // Error handling middleware
+076 app.use((err, req, res, next) => {
+077   console.error(err.stack);
+078   res.status(500).json({ success: false, message: err.message || 'Internal Server Error' });
+079 });
+080 
+081 // 404 handler
+082 app.use('*', (req, res) => {
+083   res.status(404).json({ success: false, message: 'Route not found' });
+084 });
+085 
+086 const PORT = process.env.PORT || 5000;
+087 app.listen(PORT, () => {
+088   console.log(`🚀 CyberWar Server running on port ${PORT}`);
+089   console.log(`📡 Environment: ${process.env.NODE_ENV}`);
+090   console.log(`🌐 API: http://localhost:${PORT}/api`);
+091 });
+092 
+093 module.exports = app;

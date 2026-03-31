@@ -1,0 +1,15 @@
+001 const express = require('express');
+002 const router = express.Router();
+003 const { protect } = require('../middleware/auth');
+004 const upload = require('../middleware/upload');
+005 const { login, getMe, updateProfile, changePassword, getUsers, createUser, deleteUser } = require('../controllers/authController');
+006 
+007 router.post('/login', login);
+008 router.get('/me', protect, getMe);
+009 router.put('/profile', protect, upload.single('avatar'), updateProfile);
+010 router.put('/password', protect, changePassword);
+011 router.get('/users', protect, getUsers);
+012 router.post('/users', protect, createUser);
+013 router.delete('/users/:id', protect, deleteUser);
+014 
+015 module.exports = router;

@@ -1,0 +1,12 @@
+001 const express = require('express');
+002 const router = express.Router();
+003 const { getBlogs, getFeaturedBlogs, getTrendingBlogs, getBreakingBlogs, getRelatedBlogs, getBlogBySlug } = require('../controllers/blogController');
+004 
+005 router.get('/', getBlogs);
+006 router.get('/featured', getFeaturedBlogs);
+007 router.get('/trending', getTrendingBlogs);
+008 router.get('/breaking', getBreakingBlogs);
+009 router.get('/:id/related', getRelatedBlogs);
+010 router.get('/slug/:slug', getBlogBySlug);
+011 
+012 module.exports = router;

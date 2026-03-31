@@ -1,0 +1,92 @@
+001 const jwt = require('jsonwebtoken');
+002 const User = require('../models/User');
+003 
+004 const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE });
+005 
+006 const login = async (req, res) => {
+007   try {
+008     const { email, password } = req.body;
+009     if (!email || !password) return res.status(400).json({ success: false, message: 'Please provide email and password' });
+010 
+011     const user = await User.findOne({ email }).select('+password');
+012     if (!user || !user.isActive) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+013 
+014     const isMatch = await user.comparePassword(password);
+015     if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+016 
+017     user.lastLogin = new Date();
+018     await user.save({ validateBeforeSave: false });
+019 
+020     const token = generateToken(user._id);
+021     res.json({ success: true, token, user: { _id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar } });
+022   } catch (error) {
+023     console.error('Login error:', error);
+024     res.status(500).json({ success: false, message: 'Server error' });
+025   }
+026 };
+027 
+028 const getMe = async (req, res) => {
+029   try {
+030     const user = await User.findById(req.user.id);
+031     res.json({ success: true, user });
+032   } catch (error) {
+033     res.status(500).json({ success: false, message: 'Server error' });
+034   }
+035 };
+036 
+037 const updateProfile = async (req, res) => {
+038   try {
+039     const { name, bio, social } = req.body;
+040     const updateData = { name, bio, social };
+041     if (req.file) updateData.avatar = `/uploads/${req.file.filename}`;
+042     const user = await User.findByIdAndUpdate(req.user.id, updateData, { new: true, runValidators: true });
+043     res.json({ success: true, user });
+044   } catch (error) {
+045     res.status(500).json({ success: false, message: 'Server error' });
+046   }
+047 };
+048 
+049 const changePassword = async (req, res) => {
+050   try {
+051     const { currentPassword, newPassword } = req.body;
+052     const user = await User.findById(req.user.id).select('+password');
+053     const isMatch = await user.comparePassword(currentPassword);
+054     if (!isMatch) return res.status(400).json({ success: false, message: 'Current password is incorrect' });
+055     user.password = newPassword;
+056     await user.save();
+057     res.json({ success: true, message: 'Password updated successfully' });
+058   } catch (error) {
+059     res.status(500).json({ success: false, message: 'Server error' });
+060   }
+061 };
+062 
+063 const getUsers = async (req, res) => {
+064   try {
+065     const users = await User.find().sort({ createdAt: -1 });
+066     res.json({ success: true, users });
+067   } catch (error) {
+068     res.status(500).json({ success: false, message: 'Server error' });
+069   }
+070 };
+071 
+072 const createUser = async (req, res) => {
+073   try {
+074     const { name, email, password, role, bio } = req.body;
+075     const user = await User.create({ name, email, password, role, bio });
+076     res.status(201).json({ success: true, user });
+077   } catch (error) {
+078     if (error.code === 11000) return res.status(400).json({ success: false, message: 'Email already exists' });
+079     res.status(500).json({ success: false, message: 'Server error' });
+080   }
+081 };
+082 
+083 const deleteUser = async (req, res) => {
+084   try {
+085     await User.findByIdAndDelete(req.params.id);
+086     res.json({ success: true, message: 'User deleted' });
+087   } catch (error) {
+088     res.status(500).json({ success: false, message: 'Server error' });
+089   }
+090 };
+091 
+092 module.exports = { login, getMe, updateProfile, changePassword, getUsers, createUser, deleteUser };

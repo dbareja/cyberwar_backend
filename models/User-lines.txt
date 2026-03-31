@@ -1,0 +1,32 @@
+001 const mongoose = require('mongoose');
+002 const bcrypt = require('bcryptjs');
+003 
+004 const userSchema = new mongoose.Schema({
+005   name: { type: String, required: true, trim: true, maxlength: 100 },
+006   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+007   password: { type: String, required: true, minlength: 6, select: false },
+008   role: { type: String, enum: ['admin', 'editor', 'author'], default: 'author' },
+009   avatar: { type: String, default: null },
+010   bio: { type: String, maxlength: 500 },
+011   social: { twitter: String, linkedin: String, github: String },
+012   isActive: { type: Boolean, default: true },
+013   lastLogin: { type: Date }
+014 }, { timestamps: true });
+015 
+016 userSchema.pre('save', async function(next) {
+017   if (!this.isModified('password')) return next();
+018   this.password = await bcrypt.hash(this.password, 12);
+019   next();
+020 });
+021 
+022 userSchema.methods.comparePassword = async function(candidatePassword) {
+023   return await bcrypt.compare(candidatePassword, this.password);
+024 };
+025 
+026 userSchema.methods.toJSON = function() {
+027   const obj = this.toObject();
+028   delete obj.password;
+029   return obj;
+030 };
+031 
+032 module.exports = mongoose.model('User', userSchema);
