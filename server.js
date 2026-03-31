@@ -60,23 +60,27 @@ const allowedOrigins = [
   'https://cyberwar.co.in',
   'https://www.cyberwar.co.in',
   'https://apiservice.cyberwar.co.in',
-  'https://apiservice.cyberwar.co.in/api',
   'https://5173-i72ygobs4ph3szzf98cwb-b32ec7bb.sandbox.novita.ai'
 ];
 
 // CORS middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  // Allow specific origins
   if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    // Fallback - remove in production
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
   
   // Handle preflight
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return res.status(204).end();
   }
   next();
 });
