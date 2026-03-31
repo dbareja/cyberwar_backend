@@ -52,31 +52,11 @@ connectDB();
 // Security middleware
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
-// CORS
-const allowedOrigins = [
-  process.env.CORS_ORIGIN || 'http://localhost:5173',
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'https://cyberwar.co.in',
-  'https://www.cyberwar.co.in',
-  'https://apiservice.cyberwar.co.in',
-  'https://5173-i72ygobs4ph3szzf98cwb-b32ec7bb.sandbox.novita.ai'
-];
-
-// CORS middleware
+// CORS - Allow ALL origins
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  // Allow specific origins
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    // Fallback
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Max-Age', '86400');
+  res.setHeader('Access-Control-Allow-Headers', '*');
   
   // Handle preflight
   if (req.method === 'OPTIONS') {
@@ -85,11 +65,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Simple CORS middleware
 app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept']
 }));
 
 // Body parsing
