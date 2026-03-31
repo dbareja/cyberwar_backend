@@ -57,15 +57,18 @@ const allowedOrigins = [
   process.env.CORS_ORIGIN || 'http://localhost:5173',
   'http://localhost:5173',
   'http://localhost:3000',
+  'https://cyberwar.co.in',
+  'https://www.cyberwar.co.in',
+  'https://apiservice.cyberwar.co.in',
   'https://5173-i72ygobs4ph3szzf98cwb-b32ec7bb.sandbox.novita.ai'
 ];
 
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin || allowedOrigins.some(o => origin.startsWith(o.replace('https://', '').replace('http://', '')))) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(null, true); // Allow all for development
+      callback(new Error('CORS not allowed for this origin: ' + origin));
     }
   },
   credentials: true,
