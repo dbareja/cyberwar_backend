@@ -4,7 +4,17 @@ const slugify = require('slugify');
 const getCategories = async (req, res) => {
   try {
     const categories = await Category.find({ isActive: true }).sort('name').lean();
-    res.json({ success: true, categories });
+    
+    // Add article count for each category
+    const Blog = require('../models/Blog');
+    const categoriesWithCount = await Promise.all(
+      categories.map(async (cat) => {
+        const count = await Blog.countDocuments({ category: cat._id, status: 'published' });
+        return { ...cat, articlesCount: count };
+      })
+    );
+    
+    res.json({ success: true, categories: categoriesWithCount });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error' });
   }

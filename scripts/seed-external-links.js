@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const connectDB = require('./config/database');
-const ExternalLink = require('./models/ExternalLink');
+const connectDB = require('../config/database');
+const ExternalLink = require('../models/ExternalLink');
 
 const externalLinks = [
   {
