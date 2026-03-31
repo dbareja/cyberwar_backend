@@ -60,6 +60,7 @@ const allowedOrigins = [
   'https://cyberwar.co.in',
   'https://www.cyberwar.co.in',
   'https://apiservice.cyberwar.co.in',
+  'https://apiservice.cyberwar.co.in/api',
   'https://5173-i72ygobs4ph3szzf98cwb-b32ec7bb.sandbox.novita.ai'
 ];
 
